@@ -8,13 +8,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
 import com.imadkrouni.barq.data.ComponentType
 import com.imadkrouni.barq.data.ElectricalComponent
 import com.imadkrouni.barq.data.RoomEntity
-import com.imadkrouni.barq.data.Wire
 
 data class WireRender(val from: Offset, val to: Offset, val color: Color, val length: Float)
 
@@ -70,7 +68,7 @@ fun FloorPlanCanvas(
                         draggedId = hit?.id
                     },
                     onDragEnd = { draggedId = null },
-                    onDrag = { change, drag ->
+                    onDrag = { change, _ ->
                         draggedId?.let { onComponentDrag?.invoke(it, change.position) }
                     }
                 )
@@ -78,7 +76,6 @@ fun FloorPlanCanvas(
     ) {
         val gridStep = 50f
 
-        // شبكة
         if (showGrid) {
             var x = 0f
             while (x < size.width) {
@@ -92,7 +89,6 @@ fun FloorPlanCanvas(
             }
         }
 
-        // الغرف
         rooms.forEach { room ->
             drawRect(
                 color = Color(0x1A1565C0),
@@ -107,13 +103,9 @@ fun FloorPlanCanvas(
             )
         }
 
-        // الأسلاك مع وميض التيار
         if (showWires) {
             wires.forEach { w ->
-                val baseColor = w.color
-                drawLine(baseColor, w.from, w.to, strokeWidth = 4f)
-
-                // وميض النبضة
+                drawLine(w.color, w.from, w.to, strokeWidth = 4f)
                 val segments = 8
                 for (i in 0 until segments) {
                     val t = (animPhase + i.toFloat() / segments) % 1f
@@ -128,7 +120,6 @@ fun FloorPlanCanvas(
             }
         }
 
-        // القطع الكهربائية
         components.forEach { c ->
             val ct = ComponentType.values().firstOrNull { it.name == c.type } ?: ComponentType.SOCKET_SINGLE
             val color = when {
@@ -142,7 +133,6 @@ fun FloorPlanCanvas(
                 else -> Color(0xFF9E9E9E)
             }
 
-            // هالة للمصابيح المضاءة
             if (c.isOn && ct.name.contains("LIGHT")) {
                 for (r in 1..3) {
                     drawCircle(
@@ -155,16 +145,6 @@ fun FloorPlanCanvas(
 
             drawCircle(color, radius = 18f, center = Offset(c.x, c.y))
             drawCircle(Color.White, radius = 6f, center = Offset(c.x, c.y))
-
-            // رمز داخل الدائرة
-            drawContext.canvas.nativeCanvas.apply {
-                val paint = android.graphics.Paint().apply {
-                    textSize = 22f
-                    isAntiAlias = true
-                    textAlign = android.graphics.Paint.Align.CENTER
-                }
-                drawText(ct.emoji, c.x, c.y + 8f, paint)
-            }
         }
     }
 }
